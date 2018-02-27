@@ -61,10 +61,12 @@ def main():
     if action == 'all':
         update(blog_name, True)
     elif action == 'new':
-        update(blog_name)
+        update(blog_name, False, exist.update_time)
+    exist.update_time = int(time.time())
+    db.add_data(exist)
 
 
-def update(blog_name, is_all=False):
+def update(blog_name, is_all=False, time_line=0):
     """
     更新指定博客
     :param blog_name:博客名称
@@ -78,10 +80,10 @@ def update(blog_name, is_all=False):
     else:
         # 追加更新
         log.info('开始更新 %s [追加更新]' % blog_name)
-        catch_data(blog_name, 20, 1, False)
+        catch_data(blog_name, 20, 1, False, time_line)
 
 
-def catch_data(blog_name, perpage=20, page=1, is_all=True):
+def catch_data(blog_name, perpage=20, page=1, is_all=True, time_line=0):
     """
     抓取数据,递归方法
     :param blog_name: 博客名称
@@ -91,18 +93,14 @@ def catch_data(blog_name, perpage=20, page=1, is_all=True):
     :return:
     """
     try:
-        post_list = catch_html(blog_name, perpage, page)
+        post_list = catch_html(blog_name, perpage, page, 1, is_all, time_line)
     except Exception as e:
         stop_and_log('error', '[%s 第%s页 获取失败] %s' % (blog_name, page, str(e)))
         return False
     # 博文信息入库
     if post_list:
-        has_exist = insert_posts(post_list)
-        if not is_all and has_exist:
-            # 追加更新,发现有已存在的博文,停止递归
-            log.info('%s 第%s页数据 发现已存在博文停止' % (blog_name, page))
-            return False
-        return catch_data(blog_name, perpage, page + 1, is_all)
+        insert_posts(post_list)
+        return catch_data(blog_name, perpage, page + 1, is_all, time_line)
     else:
         # 博文获取为空,停止递归
         log.info('%s 第%s页数据 获取博文为空,停止' % (blog_name, page))
@@ -110,7 +108,7 @@ def catch_data(blog_name, perpage=20, page=1, is_all=True):
 
 
 # 抓取HTML
-def catch_html(blog_name, perpage=20, page=1, try_times=1):
+def catch_html(blog_name, perpage=20, page=1, try_times=1, is_all=False, time_line=0):
     """
     抓取博客数据
     :param blog_name: 博客名
@@ -133,13 +131,13 @@ def catch_html(blog_name, perpage=20, page=1, try_times=1):
 
     try:
         content = request.urlopen(url).read().decode('UTF-8')
-    except http.client.IncompleteRead as ie:
+    except (http.client.IncompleteRead, socket.timeout) as ie:
         if try_times > 3:
             stop_and_log('error', '[%s 第%s页 获取失败] url:%s; 尝试次数过多' % (blog_name, page, url))
             return False
         else:
             log.info('url:%s 出错:%s 获取不完整,重试' % (url, str(ie)))
-            return catch_html(blog_name, perpage, page, try_times + 1)
+            return catch_html(blog_name, perpage, page, try_times + 1, is_all, time_line)
     except Exception as e:
         stop_and_log('error', '[%s 第%s页 获取失败] url:%s; %s' % (blog_name, page, url, str(e)))
         return False
@@ -167,6 +165,12 @@ def catch_html(blog_name, perpage=20, page=1, try_times=1):
         unix_timestamp = post['unix-timestamp']
         # print(post['id'])
         post_id = post['id']
+        if not is_all and unix_timestamp < time_line:
+            log.info(
+                '当前博文发布时间:%s 更新截止时间:%s 时间线之前的数据,跳过' % (
+                    time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(unix_timestamp)),
+                    time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time_line))))
+            continue
         item = {'id': post_id, 'blog_name': blog_name, 'post_type': post_type, 'unix_timestamp': unix_timestamp,
                 'img': '', 'video': ''}
         # print(item)
