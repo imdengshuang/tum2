@@ -28,8 +28,14 @@ class DbManager(object):
             print(e)
             return False
 
-    def find(self, model, params):
-        return self.session.query(model).filter(params).first()
+    def find(self, model, params, order_by=None):
+        if order_by is None:
+            return self.session.query(model).filter(params).first()
+        else:
+            return self.session.query(model).filter(params).order_by(order_by).first()
 
-    def select(self, model, params):
-        return self.session.query(model).filter(params).all()
+    def select(self, model, params, order_by=None):
+        if order_by is None:
+            return self.session.query(model).filter(params).all()
+        else:
+            return self.session.query(model).filter(params).order_by(order_by).all()

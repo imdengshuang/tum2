@@ -95,7 +95,7 @@ def start(blog_name):
 def show(blog_name=''):
     db = dbm.DbManager('tumblr2')
     if blog_name == '':
-        data = db.select(model.Blog, 1 == 1)
+        data = db.select(model.Blog, 1 == 1, model.Blog.update_time.desc())
     else:
         data = db.select(model.Blog, model.Blog.name == blog_name)
     if data:
@@ -104,7 +104,8 @@ def show(blog_name=''):
                 status = '启动'
             else:
                 status = '停止'
-            print('%s [%s]' % (one.name, status))
+            update_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(one.update_time))
+            print('%s [%s] 更新时间:%s' % (one.name, status, update_str))
     else:
         print('%s 不存在' % blog_name)
         log.error('%s 不存在' % blog_name)
