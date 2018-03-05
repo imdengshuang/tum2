@@ -71,6 +71,7 @@ def update(blog_name, is_all=False, time_line=0):
     更新指定博客
     :param blog_name:博客名称
     :param is_all:是否更新全部
+    :param time_line:追加更新的截止时间戳
     """
     # print(blog_name)
     if is_all:
@@ -90,6 +91,7 @@ def catch_data(blog_name, perpage=20, page=1, is_all=True, time_line=0):
     :param perpage: 每页数据
     :param page: 页数
     :param is_all: 是否获取全部,为否时,发现存在数据则停止
+    :param time_line:追加更新的截止时间戳
     :return:
     """
     try:
@@ -115,6 +117,8 @@ def catch_html(blog_name, perpage=20, page=1, try_times=1, is_all=False, time_li
     :param perpage: 每页数据
     :param page: 页数
     :param try_times:尝试次数
+    :param is_all:是否更新全部
+    :param time_line:更新的截止时间戳
     :return: mixed
     """
     log.info('开始抓取 %s 第%s页数据' % (blog_name, page))

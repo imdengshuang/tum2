@@ -39,3 +39,6 @@ class DbManager(object):
             return self.session.query(model).filter(params).all()
         else:
             return self.session.query(model).filter(params).order_by(order_by).all()
+
+    def get_session(self):
+        return self.session
