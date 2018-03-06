@@ -1,11 +1,15 @@
 # -*- coding:utf-8 -*-
-import sys, time, os, datetime
+import datetime
+import os
+import sys
+import time
 from logging import getLogger, INFO, Formatter
+
 from cloghandler import ConcurrentRotatingFileHandler
 
+import model.db as dbm
 # 自有模块
 import model.model as model
-import model.db as dbm
 
 if not os.path.isdir('log'):
     os.mkdir('log')

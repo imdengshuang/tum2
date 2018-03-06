@@ -5,12 +5,11 @@ import os
 import socket
 import sys
 import threading
-import threadpool
 import time
 from logging import getLogger, INFO, Formatter
-from urllib import request
 
 import requests
+import threadpool
 from cloghandler import ConcurrentRotatingFileHandler
 
 import model.db as dbm
@@ -19,6 +18,14 @@ import model.model as model
 
 
 def download(key, total, lock, log):
+    """
+    多线程,线程指定函数
+    :param key: 多个任务中的第key个,用于展示或日志
+    :param total: 总共的任务数量
+    :param lock: 锁,用于数据库的排他
+    :param log: 日志对象,用于全局的日志记录
+    :return:
+    """
     start = time.time()
     # print(key, total, lock, log)
     log.info('开始下载 key:%s' % key)
@@ -46,10 +53,6 @@ def download(key, total, lock, log):
     finally:
         lock.release()
 
-    # print(data_id, data_url, data_name)
-    # return False
-    # sec = random.randint(1, 3)
-    # time.sleep(sec)
     download_data = {'id': data_id, 'url': data_url, 'blog_name': data_name, 'type': data_type}
     res = download_img(download_data, 1, log)
     if not res:
@@ -65,11 +68,19 @@ def download(key, total, lock, log):
         one_data.status = 3
         db.add_data(one_data)
         end = time.time()
-        log.info('下载完毕 key:%s 用时: %s' % (key, int(end - start)))
+        log.info('下载完毕 key:%s 用时: %s秒' % (key, int(end - start)))
+        print('下载完毕 key:%s 用时: %s秒' % (key, int(end - start)))
         return True
 
 
 def download_img(one_data, try_times=1, log=None):
+    """
+    实际下载方法,递归实现多次尝试
+    :param one_data: 需要下载的数据 字典类型
+    :param try_times: 尝试次数,默认为1
+    :param log: 日志对象
+    :return:
+    """
     # 绝对路径
     target_path = '/Volumes/hhd/python_download/tum/'
     if not os.path.exists(target_path):
@@ -80,37 +91,35 @@ def download_img(one_data, try_times=1, log=None):
         video_dir = os.path.join(this_dir, 'video')
         pic_dir = os.path.join(this_dir, 'pic')
         if one_data['type'] == 1:
-            # socket.setdefaulttimeout(30)
+            # 根据不同类型设置过期时间
             time_limit = 30
-            # 视频
+            # 视频写死扩展
             ext = '.mp4'
             new_dir = os.path.join(video_dir, one_data['blog_name'])
         else:
+            # 根据不同类型设置过期时间
             time_limit = 10
+            # 动态获取扩展
             ext = os.path.splitext(one_data['url'])[1]
             new_dir = os.path.join(pic_dir, one_data['blog_name'])
 
         if not os.path.exists(new_dir):
+            # 目录自动创建
             os.makedirs(new_dir)
+        # 组装文件名称
         new_filename = os.path.join(new_dir, str(one_data['id']) + ext)
+        # 获取开始下载时间
         begin = time.time()
 
-        if one_data['url'].startswith('https'):
-            proxy = "https://127.0.0.1:1087"
-            proxy_handler = request.ProxyHandler({'https': proxy})
-        else:
-            proxy = "http://127.0.0.1:1087"
-            proxy_handler = request.ProxyHandler({'http': proxy})
-        opener = request.build_opener(proxy_handler)
-
         url = one_data['url']
-        request.install_opener(opener)
+
         try:
             proxies = {"http": "http://127.0.0.1:1087", "https": "https://127.0.0.1:1087", }
             r = requests.get(url, proxies=proxies, stream=True, timeout=time_limit)
             with open(new_filename, 'wb') as f:
                 f.write(r.content)
         except (http.client.IncompleteRead, socket.timeout) as ie:
+            # 下载超时或不完整则重试
             if try_times > 3:
                 log.error('id: %s 尝试次数过多 url:%s' % (one_data['id'], one_data['url']))
                 return False
@@ -121,7 +130,7 @@ def download_img(one_data, try_times=1, log=None):
         return True
     except Exception as e:
         print(e)
-        print(one_data.url)
+        print(one_data['url'])
         return False
 
 
@@ -142,6 +151,7 @@ def main():
         thread_num = 1
     begin = time.time()
 
+    # 日志相关初始化
     if not os.path.isdir('log'):
         os.mkdir('log')
     log_file_name = '%s-%s.log' % (os.path.basename(__file__).replace('.py', ''), datetime.date.today())
@@ -168,6 +178,16 @@ def main():
     [pool.putRequest(req) for req in requests_res]
     pool.wait()
     end = time.time()
+    print('所有完成,耗时:%s' % fmt_time(end - begin))
+
+
+def fmt_time(sec):
+    if 60 <= sec <= 3600:
+        return '%d分%d秒' % (sec / 60, sec % 60)
+    elif sec < 60:
+        return '%d秒' % sec
+    elif sec > 3600:
+        return '%d小时%d分%d秒' % (sec / 3600, sec % 3600 / 60, sec % 3600 % 60)
 
 
 if __name__ == '__main__':
