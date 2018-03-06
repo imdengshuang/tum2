@@ -1,14 +1,4 @@
 # -*- coding:utf-8 -*-
-import http
-import sys
-import os
-import datetime
-import json
-import time
-import socket
-from logging import getLogger, INFO, Formatter
-from urllib import request
-from pyquery import PyQuery as pyq
 from one import *
 
 from cloghandler import ConcurrentRotatingFileHandler
@@ -57,12 +47,22 @@ def main():
     blog_list = session.query(model.Blog).filter(model.Blog.status == 1, model.Blog.update_time < time_line).order_by(
         model.Blog.update_time.desc()).limit(limit).all()
     # print(blog_list)
+    # 循环更新博客
     for blog in blog_list:
         # print(blog.name)
-        update_blog(blog.name)
+        res_up = update_blog(blog.name)
+        if res_up:
+            print('%s 更新完毕' % blog.name)
+        else:
+            print('%s 更新失败' % blog.name)
 
 
 def update_blog(blog_name):
+    """
+    追加更新指定博客
+    :param blog_name:
+    :return:
+    """
     exist = db.find(model.Blog, model.Blog.name == blog_name)
     if not exist:
         stop_and_log('error', '%s 不存在' % blog_name)
@@ -73,6 +73,7 @@ def update_blog(blog_name):
     update(blog_name, False, exist.update_time)
     exist.update_time = int(time.time())
     db.add_data(exist)
+    return True
 
 
 if __name__ == '__main__':

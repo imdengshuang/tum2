@@ -273,7 +273,7 @@ def insert_posts(post_list):
                               post_time=post['unix_timestamp'], post_id=post['id'])
             db.add_data(data)
         else:
-            log.info('博文已存在 [%s] data:%s' % (str(exist), json.dumps(post)))
+            # log.info('博文已存在 [%s] data:%s' % (str(exist), json.dumps(post)))
             has_exist = True
 
     return has_exist

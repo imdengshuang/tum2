@@ -23,6 +23,7 @@ class DbManager(object):
         try:
             self.session.add(data)
             self.session.commit()
+            self.session.close()
             return True
         except Exception as e:
             print(e)
