@@ -12,7 +12,7 @@ class Item(Base):
     url = Column(String(500), comment='链接地址', nullable=False)
     blog_name = Column(String(100), comment='博客名称')
     type = Column(Integer, comment='类型,0图片,1视频', default=0)
-    status = Column(Integer, comment='状态,0待下载,1下载完成,2下载失败', default=0)
+    status = Column(Integer, comment='状态,0待下载,1下载中,2下载失败,3下载成功', default=0)
     create_time = Column(Integer, comment='添加时间', default=0)
     post_time = Column(Integer, comment='发布时间', default=0)
     post_id = Column(String(30), comment='博文唯一码')
