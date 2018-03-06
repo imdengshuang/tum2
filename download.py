@@ -7,6 +7,7 @@ import sys
 import threading
 import time
 from logging import getLogger, INFO, Formatter
+from tqdm import tqdm
 
 import requests
 import threadpool
@@ -16,18 +17,20 @@ import model.db as dbm
 # 自有模块
 import model.model as model
 
+finish_num = 0
 
-def download(key, total, lock, log):
+
+def download(key, lock, log, progress, thread_num):
     """
     多线程,线程指定函数
+    :param progress: 进度条对象
+    :param thread_num: 进程编号
     :param key: 多个任务中的第key个,用于展示或日志
-    :param total: 总共的任务数量
     :param lock: 锁,用于数据库的排他
     :param log: 日志对象,用于全局的日志记录
     :return:
     """
     start = time.time()
-    # print(key, total, lock, log)
     log.info('开始下载 key:%s' % key)
     lock.acquire()
     try:
@@ -54,7 +57,7 @@ def download(key, total, lock, log):
         lock.release()
 
     download_data = {'id': data_id, 'url': data_url, 'blog_name': data_name, 'type': data_type}
-    res = download_img(download_data, 1, log)
+    res = download_img(download_data, 1, log, thread_num, key)
     if not res:
         db = dbm.DbManager('tumblr2')
         one_data = db.session.query(model.Item).filter(model.Item.id == data_id).first()
@@ -69,13 +72,19 @@ def download(key, total, lock, log):
         db.add_data(one_data)
         end = time.time()
         log.info('下载完毕 key:%s 用时: %s秒' % (key, int(end - start)))
-        print('下载完毕 key:%s 用时: %s秒' % (key, int(end - start)))
+        # print('下载完毕 key:%s 用时: %s秒' % (key, int(end - start)))
+        global finish_num
+        finish_num = finish_num + 1
+        # print(finish_num)
+        progress.update(1)
         return True
 
 
-def download_img(one_data, try_times=1, log=None):
+def download_img(one_data, try_times=1, log=None, thread_num=0, key=0):
     """
     实际下载方法,递归实现多次尝试
+    :param key: 多个任务中的第key个,用于展示或日志
+    :param thread_num:进程编号
     :param one_data: 需要下载的数据 字典类型
     :param try_times: 尝试次数,默认为1
     :param log: 日志对象
@@ -109,15 +118,17 @@ def download_img(one_data, try_times=1, log=None):
         # 组装文件名称
         new_filename = os.path.join(new_dir, str(one_data['id']) + ext)
         # 获取开始下载时间
-        begin = time.time()
 
         url = one_data['url']
 
+        proxies = {"http": "http://127.0.0.1:1087", "https": "https://127.0.0.1:1087", }
+        r = requests.get(url, proxies=proxies, stream=True, timeout=time_limit)
+        size = int(r.headers['Content-Length']) // 1024
         try:
-            proxies = {"http": "http://127.0.0.1:1087", "https": "https://127.0.0.1:1087", }
-            r = requests.get(url, proxies=proxies, stream=True, timeout=time_limit)
             with open(new_filename, 'wb') as f:
-                f.write(r.content)
+                for data in tqdm(iterable=r.iter_content(1024), total=size, unit='k', desc='%d' % (key % thread_num),
+                                 position=(key % thread_num + 1)):
+                    f.write(data)
         except (http.client.IncompleteRead, socket.timeout) as ie:
             # 下载超时或不完整则重试
             if try_times > 3:
@@ -125,7 +136,7 @@ def download_img(one_data, try_times=1, log=None):
                 return False
             else:
                 log.info('id: %s 获取不为完整,重试: %s' % (one_data['id'], str(ie)))
-                return download_img(one_data, try_times + 1, log)
+                return download_img(one_data, try_times + 1, log, thread_num, key)
 
         return True
     except Exception as e:
@@ -171,14 +182,12 @@ def main():
     # 创建线程池
     pool = threadpool.ThreadPool(thread_num)
     requests_list = []
-    # list = [([1,2],None)]
+    progress = tqdm(total=limit, desc='total')
     for x in range(limit):
-        requests_list.append(([x, limit, lock, log], None))
+        requests_list.append(([x, lock, log, progress, thread_num], None))
     requests_res = threadpool.makeRequests(download, requests_list)
     [pool.putRequest(req) for req in requests_res]
     pool.wait()
-    end = time.time()
-    print('所有完成,耗时:%s' % fmt_time(end - begin))
 
 
 def fmt_time(sec):
