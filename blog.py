@@ -155,15 +155,24 @@ def update_following_blog_name(page, per_page):
         oauth_token,
         oauth_secret
     )
+    # print(consumer_key)
+    # return False
     offset = (page - 1) * per_page
     data = client.following(limit=per_page, offset=offset)
-    if len(data['blogs']) == 0:
+    # print(data)
+    # return False
+    try:
+        if len(data['blogs']) == 0:
+            return False
+        else:
+            for blog_data in data['blogs']:
+                # print(blog_data['name'])
+                add(blog_data['name'])
+            return update_following_blog_name(page + 1, per_page)
+    except Exception as e:
+        print(e)
+        print(data)
         return False
-    else:
-        for blog_data in data['blogs']:
-            # print(blog_data['name'])
-            add(blog_data['name'])
-        return update_following_blog_name(page + 1, per_page)
 
 
 if __name__ == '__main__':
