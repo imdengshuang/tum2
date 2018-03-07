@@ -7,6 +7,8 @@ python3 blog.py show    展示所有博客
 python3 blog.py show  xxx  展示指定博客
 python3 blog.py stop xxx 停用博客
 python3 blog.py start xxx 启用博客
+使用pytumblr获取自己账号的关注列表.进而更新博客数据
+python3 blog.py update    更新博客
 
 每日追加更新模式:获取今日未更新过的博客的博文,如果发现已经获取过的博文,终止更新
 python3 daily.py 10 更新10个,今日未更新的博客
@@ -23,5 +25,4 @@ python3 download.py 1000 10 启动10个线程下载1000个博文
 日志记录:博客更新和博文下载都记录日志
 日志文件夹:log
 
-todo
-使用pytumblr获取自己账号的关注列表.进而更新博客数据
+
