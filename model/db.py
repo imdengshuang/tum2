@@ -7,10 +7,8 @@ from sqlalchemy.orm import sessionmaker
 class DbManager(object):
     """数据连接类"""
 
-    def __init__(self, dbname):
+    def __init__(self):
         super(DbManager, self).__init__()
-        self.dbname = dbname
-        # print(dbname)
         conf = configparser.ConfigParser()
         conf.read('./conf/config.ini')
         mysql_string = conf.get('db', 'mysql_string')

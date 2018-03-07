@@ -72,7 +72,7 @@ def add(blog_name):
     添加博客
     :param blog_name: 博客名称
     """
-    db = dbm.DbManager('tumblr2')
+    db = dbm.DbManager()
     exist = db.find(model.Blog, model.Blog.name == blog_name)
     if exist:
         print('%s已经存在' % blog_name)
@@ -88,7 +88,7 @@ def stop(blog_name):
     停止博客
     :param blog_name:博客名称
     """
-    db = dbm.DbManager('tumblr2')
+    db = dbm.DbManager()
     exist = db.find(model.Blog, model.Blog.name == blog_name)
     if exist:
         exist.status = 0
@@ -103,7 +103,7 @@ def start(blog_name):
     开始博客
     :param blog_name:博客名称
     """
-    db = dbm.DbManager('tumblr2')
+    db = dbm.DbManager()
     exist = db.find(model.Blog, model.Blog.name == blog_name)
     if exist:
         exist.status = 1
@@ -118,7 +118,7 @@ def show(blog_name=''):
     展示博客信息
     :param blog_name:博客名称
     """
-    db = dbm.DbManager('tumblr2')
+    db = dbm.DbManager()
     if blog_name == '':
         data = db.select(model.Blog, 1 == 1, model.Blog.update_time.desc())
     else:

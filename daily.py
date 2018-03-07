@@ -21,7 +21,7 @@ formatter = Formatter(format_str, datefmt_str)
 rotateHandler.setFormatter(formatter)
 log.addHandler(rotateHandler)
 log.setLevel(INFO)
-db = dbm.DbManager('tumblr2')
+db = dbm.DbManager()
 
 
 def main():

@@ -34,7 +34,7 @@ def download(key, lock, log, progress, thread_num):
     log.info('开始下载 key:%s' % key)
     lock.acquire()
     try:
-        db = dbm.DbManager('tumblr2')
+        db = dbm.DbManager()
         session = db.get_session()
         one_data = session.query(model.Item).filter(model.Item.status == 0).first()
         if one_data:
@@ -42,6 +42,7 @@ def download(key, lock, log, progress, thread_num):
             data_url = one_data.url
             data_type = one_data.type
             data_name = one_data.blog_name
+            data_time = one_data.post_time
             one_data.status = 1
             db.add_data(one_data)
             log.info('获取数据完成 key: %s id: %s' % (key, str(data_id)))
@@ -56,17 +57,17 @@ def download(key, lock, log, progress, thread_num):
     finally:
         lock.release()
 
-    download_data = {'id': data_id, 'url': data_url, 'blog_name': data_name, 'type': data_type}
+    download_data = {'id': data_id, 'url': data_url, 'blog_name': data_name, 'type': data_type, 'time': data_time}
     res = download_img(download_data, 1, log, thread_num, key)
     if not res:
-        db = dbm.DbManager('tumblr2')
+        db = dbm.DbManager()
         one_data = db.session.query(model.Item).filter(model.Item.id == data_id).first()
         one_data.status = 2
         db.add_data(one_data)
         log.info('下载失败 key:%s id: %s' % (key, data_id))
         return False
     else:
-        db = dbm.DbManager('tumblr2')
+        db = dbm.DbManager()
         one_data = db.session.query(model.Item).filter(model.Item.id == data_id).first()
         one_data.status = 3
         db.add_data(one_data)
@@ -95,7 +96,8 @@ def download_img(one_data, try_times=1, log=None, thread_num=0, key=0):
     if not os.path.exists(target_path):
         os.mkdir(target_path)
     try:
-        this_dir = os.path.join(target_path, 'download_' + time.strftime("%Y-%m-%d", time.localtime()))
+        # this_dir = os.path.join(target_path, 'download_' + time.strftime("%Y-%m-%d", time.localtime()))
+        this_dir = os.path.join(target_path, 'download_' + time.strftime("%Y-%m-%d", time.localtime(one_data['time'])))
 
         video_dir = os.path.join(this_dir, 'video')
         pic_dir = os.path.join(this_dir, 'pic')
