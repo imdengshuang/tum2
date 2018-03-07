@@ -1,16 +1,21 @@
+import configparser
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 
 class DbManager(object):
-    """docstring for DbManager"""
+    """数据连接类"""
 
     def __init__(self, dbname):
         super(DbManager, self).__init__()
         self.dbname = dbname
         # print(dbname)
+        conf = configparser.ConfigParser()
+        conf.read('./conf/config.ini')
+        mysql_string = conf.get('db', 'mysql_string')
         self.engine = create_engine(
-            'mysql+pymysql://root:root@/' + dbname + '?unix_socket=/Applications/MAMP/tmp/mysql/mysql.sock',
+            mysql_string,
             connect_args={'charset': 'utf8'})
         DBSession = sessionmaker(bind=self.engine)
         self.session = DBSession()

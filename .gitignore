@@ -1,2 +1,5 @@
 venv
 log
+test.py
+conf
+__pycache__

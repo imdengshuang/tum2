@@ -1,8 +1,10 @@
 # -*- coding:utf-8 -*-
+import configparser
 import datetime
 import os
 import sys
 import time
+import pytumblr
 from logging import getLogger, INFO, Formatter
 
 from cloghandler import ConcurrentRotatingFileHandler
@@ -27,18 +29,23 @@ log.addHandler(rotateHandler)
 log.setLevel(INFO)
 
 
-# 处理命令行参数,分发操作
-# python3 blog.py add xxx 新增博客
-# python3 blog.py show    展示所有博客
-# python3 blog.py show  xxx  展示指定博客
-# python3 blog.py stop xxx 停用博客
-# python3 blog.py start xxx 启用博客
 def main():
+    """
+    处理命令行参数,分发操作
+    python3 blog.py add xxx   新增博客
+    python3 blog.py show      展示所有博客
+    python3 blog.py update    更新博客
+    python3 blog.py show  xxx 展示指定博客
+    python3 blog.py stop xxx  停用博客
+    python3 blog.py start xxx 启用博客
+    """
     args = sys.argv
     if len(args) == 2:
         action = str(args[1])
-        if action != 'show':
+        if action not in ['show', 'update']:
             print('缺少参数')
+        elif action == 'update':
+            update_following_blog_name(1, 20)
         else:
             show()
     if len(args) == 3:
@@ -60,8 +67,11 @@ def main():
         log.error('参数错误 args:%s' % str(args))
 
 
-# 添加博客
 def add(blog_name):
+    """
+    添加博客
+    :param blog_name: 博客名称
+    """
     db = dbm.DbManager('tumblr2')
     exist = db.find(model.Blog, model.Blog.name == blog_name)
     if exist:
@@ -73,8 +83,11 @@ def add(blog_name):
         print('添加完成')
 
 
-# 停止博客
 def stop(blog_name):
+    """
+    停止博客
+    :param blog_name:博客名称
+    """
     db = dbm.DbManager('tumblr2')
     exist = db.find(model.Blog, model.Blog.name == blog_name)
     if exist:
@@ -86,6 +99,10 @@ def stop(blog_name):
 
 
 def start(blog_name):
+    """
+    开始博客
+    :param blog_name:博客名称
+    """
     db = dbm.DbManager('tumblr2')
     exist = db.find(model.Blog, model.Blog.name == blog_name)
     if exist:
@@ -97,6 +114,10 @@ def start(blog_name):
 
 
 def show(blog_name=''):
+    """
+    展示博客信息
+    :param blog_name:博客名称
+    """
     db = dbm.DbManager('tumblr2')
     if blog_name == '':
         data = db.select(model.Blog, 1 == 1, model.Blog.update_time.desc())
@@ -113,6 +134,36 @@ def show(blog_name=''):
     else:
         print('%s 不存在' % blog_name)
         log.error('%s 不存在' % blog_name)
+
+
+def update_following_blog_name(page, per_page):
+    """
+    更新自己关注的博客,递归
+    :param page:页数
+    :param per_page:每页数量
+    :return:
+    """
+    conf = configparser.ConfigParser()
+    conf.read('./conf/config.ini')
+    consumer_key = conf.get('pytumblr', 'consumer_key')
+    consumer_secret = conf.get('pytumblr', 'consumer_secret')
+    oauth_token = conf.get('pytumblr', 'oauth_token')
+    oauth_secret = conf.get('pytumblr', 'oauth_secret')
+    client = pytumblr.TumblrRestClient(
+        consumer_key,
+        consumer_secret,
+        oauth_token,
+        oauth_secret
+    )
+    offset = (page - 1) * per_page
+    data = client.following(limit=per_page, offset=offset)
+    if len(data['blogs']) == 0:
+        return False
+    else:
+        for blog_data in data['blogs']:
+            # print(blog_data['name'])
+            add(blog_data['name'])
+        return update_following_blog_name(page + 1, per_page)
 
 
 if __name__ == '__main__':
