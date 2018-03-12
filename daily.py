@@ -50,11 +50,12 @@ def main():
     # 循环更新博客
     for blog in blog_list:
         # print(blog.name)
-        res_up = update_blog(blog.name)
+        blog_name = blog.name
+        res_up = update_blog(blog_name)
         if res_up:
-            print('%s 更新完毕' % blog.name)
+            print('%s 更新完毕' % blog_name)
         else:
-            print('%s 更新失败' % blog.name)
+            print('%s 更新失败' % blog_name)
 
 
 def update_blog(blog_name):
@@ -72,9 +73,13 @@ def update_blog(blog_name):
         return False
     update(blog_name, False, exist.update_time)
     exist.update_time = int(time.time())
-    db.add_data(exist)
+    session = db.get_session()
+    session.add(exist)
+    session.commit()
     return True
 
 
 if __name__ == '__main__':
     main()
+    # blog_name = 'xxxhotpics'
+    # catch_data(blog_name, 100, 11, False, 0)
