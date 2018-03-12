@@ -81,7 +81,7 @@ def update(blog_name, is_all=False, time_line=0):
     else:
         # 追加更新
         log.info('开始更新 %s [追加更新]' % blog_name)
-        catch_data(blog_name, 20, 1, False, time_line)
+        catch_data(blog_name, 100, 1, False, time_line)
 
 
 def catch_data(blog_name, perpage=20, page=1, is_all=True, time_line=0):
@@ -127,7 +127,7 @@ def catch_html(blog_name, perpage=20, page=1, try_times=1, is_all=False, time_li
         blog_name, start, perpage)
     # print(url)
     # 设置代理
-    socket.setdefaulttimeout(5)
+    socket.setdefaulttimeout(20)
     proxy = "https://127.0.0.1:1087"
     proxy_handler = request.ProxyHandler({'https': proxy})
     opener = request.build_opener(proxy_handler)
@@ -136,6 +136,7 @@ def catch_html(blog_name, perpage=20, page=1, try_times=1, is_all=False, time_li
     try:
         content = request.urlopen(url).read().decode('UTF-8')
     except (http.client.IncompleteRead, socket.timeout) as ie:
+        try_times = 1
         if try_times > 3:
             stop_and_log('error', '[%s 第%s页 获取失败] url:%s; 尝试次数过多' % (blog_name, page, url))
             return False
@@ -143,8 +144,10 @@ def catch_html(blog_name, perpage=20, page=1, try_times=1, is_all=False, time_li
             log.info('url:%s 出错:%s 获取不完整,重试' % (url, str(ie)))
             return catch_html(blog_name, perpage, page, try_times + 1, is_all, time_line)
     except Exception as e:
-        stop_and_log('error', '[%s 第%s页 获取失败] url:%s; %s' % (blog_name, page, url, str(e)))
-        return False
+        log.info('url:%s 出错:%s 获取获取失败,重试' % (url, str(e)))
+        return catch_html(blog_name, perpage, page, try_times + 1, is_all, time_line)
+        # stop_and_log('error', '[%s 第%s页 获取失败] url:%s; %s' % (blog_name, page, url, str(e)))
+        # return False
     log.info('%s 第%s页数据 开始整理数据格式' % (blog_name, page))
     # 修整数据格式
     try:
