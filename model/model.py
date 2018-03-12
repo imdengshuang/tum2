@@ -1,3 +1,5 @@
+import configparser
+
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String
 import time
@@ -45,7 +47,10 @@ def drop_db(engine):
     Base.metadata.drop_all(engine)
 
 
+conf = configparser.ConfigParser()
+conf.read('../conf/config.ini')
+mysql_string = conf.get('db', 'mysql_string')
 engine = create_engine(
-    'mysql+pymysql://root:root@/tumblr2?unix_socket=/Applications/MAMP/tmp/mysql/mysql.sock',
+    mysql_string,
     connect_args={'charset': 'utf8'})
 init_db(engine)
