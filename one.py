@@ -8,6 +8,7 @@ import time
 import socket
 from logging import getLogger, INFO, Formatter
 from urllib import request
+from urllib import error
 from pyquery import PyQuery as pyq
 
 from cloghandler import ConcurrentRotatingFileHandler
@@ -43,11 +44,18 @@ def main():
     args = sys.argv
     enable_action = ['all', 'new']
 
-    if len(args) != 3:
+    # if len(args) != 3:
+    #     stop_and_log('error', '参数错误 args:%s' % str(args))
+    #     return False
+    if len(args) == 2:
+        blog_name = str(args[1])
+        action = 'all'
+    elif len(args) == 3:
+        blog_name = str(args[1])
+        action = args[2]
+    else:
         stop_and_log('error', '参数错误 args:%s' % str(args))
         return False
-    blog_name = str(args[1])
-    action = args[2]
     if enable_action.count(action) == 0:
         stop_and_log('参数错误,允许的参数:%s' % enable_action)
         return False
@@ -77,11 +85,11 @@ def update(blog_name, is_all=False, time_line=0):
     if is_all:
         # 更新全部
         log.info('开始更新 %s [更新全部]' % blog_name)
-        catch_data(blog_name)
+        return catch_data(blog_name, 10)
     else:
         # 追加更新
         log.info('开始更新 %s [追加更新]' % blog_name)
-        catch_data(blog_name, 100, 1, False, time_line)
+        return catch_data(blog_name, 10, 1, False, time_line)
 
 
 def catch_data(blog_name, perpage=20, page=1, is_all=True, time_line=0):
@@ -99,6 +107,8 @@ def catch_data(blog_name, perpage=20, page=1, is_all=True, time_line=0):
     except Exception as e:
         stop_and_log('error', '[%s 第%s页 获取失败] %s' % (blog_name, page, str(e)))
         return False
+    if post_list == -1:
+        return -1
     # 博文信息入库
     if post_list:
         insert_posts(post_list)
@@ -106,7 +116,7 @@ def catch_data(blog_name, perpage=20, page=1, is_all=True, time_line=0):
     else:
         # 博文获取为空,停止递归
         log.info('%s 第%s页数据 获取博文为空,停止' % (blog_name, page))
-        return False
+        return True
 
 
 # 抓取HTML
@@ -143,6 +153,18 @@ def catch_html(blog_name, perpage=20, page=1, try_times=1, is_all=False, time_li
         else:
             log.info('url:%s 出错:%s 获取不完整,重试' % (url, str(ie)))
             return catch_html(blog_name, perpage, page, try_times + 1, is_all, time_line)
+    except error.HTTPError as e:
+        if hasattr(e, 'code'):
+            if e.code == 404:
+                stop_and_log('error', '[%s 第%s页 获取失败] url:%s; %s' % (blog_name, page, url, str(e)))
+                # 404 返回-1,方便停止改博客
+                return -1
+            else:
+                log.info('url:%s 出错:%s 获取获取失败,重试' % (url, str(e)))
+                return catch_html(blog_name, perpage, page, try_times + 1, is_all, time_line)
+        else:
+            log.info('url:%s 出错:%s 获取获取失败,重试' % (url, str(e)))
+            return catch_html(blog_name, perpage, page, try_times + 1, is_all, time_line)
     except Exception as e:
         log.info('url:%s 出错:%s 获取获取失败,重试' % (url, str(e)))
         return catch_html(blog_name, perpage, page, try_times + 1, is_all, time_line)
@@ -165,6 +187,8 @@ def catch_html(blog_name, perpage=20, page=1, try_times=1, is_all=False, time_li
         return False
     # print(jsonData)
     posts = json_data['posts']
+    post_total = json_data['posts-total']
+    log.info('[%s]整理完毕 共%s条博文,当前' % (blog_name, post_total))
     post_list = []
     # 遍历获取博文信息
     for post in posts:

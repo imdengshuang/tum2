@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 from one import *
+from blog import stop
 
 from cloghandler import ConcurrentRotatingFileHandler
 
@@ -31,7 +32,6 @@ def main():
     :return:
     """
     args = sys.argv
-    # update('mtypepotato')
     if len(args) != 2:
         stop_and_log('error', '参数错误 args:%s' % str(args))
         return False
@@ -45,13 +45,15 @@ def main():
     # 获取待更新博客列表
     session = db.get_session()
     blog_list = session.query(model.Blog).filter(model.Blog.status == 1, model.Blog.update_time < time_line).order_by(
-        model.Blog.update_time.desc()).limit(limit).all()
+        model.Blog.update_time.asc()).limit(limit).all()
     # print(blog_list)
     # 循环更新博客
     for blog in blog_list:
         # print(blog.name)
         blog_name = blog.name
         res_up = update_blog(blog_name)
+        if res_up == -1:
+            print('%s 更新失败404' % blog_name)
         if res_up:
             print('%s 更新完毕' % blog_name)
         else:
@@ -71,15 +73,24 @@ def update_blog(blog_name):
     if exist.status == 0:
         stop_and_log('error', '%s 已停用' % blog_name)
         return False
-    update(blog_name, False, exist.update_time)
-    exist.update_time = int(time.time())
-    session = db.get_session()
-    session.add(exist)
-    session.commit()
-    return True
+    res_update = update(blog_name, False, exist.update_time)
+    if not res_update:
+        return False
+    if res_update == -1:
+        exist.status = 0
+        session = db.get_session()
+        session.add(exist)
+        session.commit()
+        return -1
+    elif res_update:
+        exist.update_time = int(time.time())
+        session = db.get_session()
+        session.add(exist)
+        session.commit()
+        return True
 
 
 if __name__ == '__main__':
-    main()
-    # blog_name = 'xxxhotpics'
-    # catch_data(blog_name, 100, 11, False, 0)
+    # main()
+    blog_name = 'mars20160627'
+    catch_data(blog_name, 10, 201, False, 0)
