@@ -29,16 +29,22 @@ def main():
     args = sys.argv
     # 日志相关初始化
     log = mylog.get_log_object()
+    db = dbm.DbManager()
     if len(args) == 2:
         blog_name = str(args[1])
         limit = 10
     elif len(args) == 3:
         blog_name = str(args[1])
         limit = int(args[2])
+    elif len(args) == 1:
+        session = db.get_session()
+        one = session.query(model.Blog).filter(model.Blog.update_time == 0).order_by(model.Blog.id.asc()).first()
+        blog_name = one.name
+        limit = 10
     else:
         stop_and_log('error', '参数错误 args:%s' % str(args), log)
         return False
-    db = dbm.DbManager()
+
     exist = db.find(model.Blog, model.Blog.name == blog_name)
     if not exist:
         stop_and_log('error', '%s 不存在' % blog_name, log)
@@ -54,6 +60,7 @@ def main():
         return False
     if res_up == 1:
         try:
+            db = dbm.DbManager()
             session = db.get_session()
             exist.update_time = int(time.time())
             session.add(exist)
@@ -229,7 +236,6 @@ def catch_html(blog_name, perpage=20, page=1, lock=None, thread_log=None, thread
         return False
     # print(jsonData)
     posts = json_data['posts']
-    post_total = json_data['posts-total']
     post_list = []
     # 遍历获取博文信息
     for post in posts:
@@ -258,7 +264,7 @@ def catch_html(blog_name, perpage=20, page=1, lock=None, thread_log=None, thread
         # print(item)
         post_list.append(item)
         # return False
-    lock.acquire()
+    # lock.acquire()
     try:
         db = dbm.DbManager()
         session = db.get_session()
@@ -284,7 +290,8 @@ def catch_html(blog_name, perpage=20, page=1, lock=None, thread_log=None, thread
         thread_log.info('[%s] 第%s页 插入数据库失败: %s' % (blog_name, page, str(e)))
         return catch_html(blog_name, perpage, page, lock, thread_log, thread_num)
     finally:
-        lock.release()
+        # lock.release()
+        pass
     end = time.time()
     thread_log.info('[%s] 第%s页处理完毕 用时%s秒' % (blog_name, page, str(int(end - begin))))
     return True
