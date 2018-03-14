@@ -1,7 +1,7 @@
 import configparser
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, TEXT
 import time
 from sqlalchemy import create_engine
 
@@ -29,6 +29,8 @@ class Blog(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(100), comment='名称')
     status = Column(Integer, comment='状态,0停用1启用', default=1)
+    remark = Column(TEXT, comment='备注')
+    total_post = Column(Integer, comment='总共博文数', default=0)
     create_time = Column(Integer, comment='添加时间')
     update_time = Column(Integer, comment='更新时间')
 
@@ -47,10 +49,10 @@ def drop_db(engine):
     Base.metadata.drop_all(engine)
 
 
-conf = configparser.ConfigParser()
-conf.read('../conf/config.ini')
-mysql_string = conf.get('db', 'mysql_string')
-engine = create_engine(
-    mysql_string,
-    connect_args={'charset': 'utf8'})
-init_db(engine)
+# conf = configparser.ConfigParser()
+# conf.read('../conf/config.ini')
+# mysql_string = conf.get('db', 'mysql_string')
+# engine = create_engine(
+#     mysql_string,
+#     connect_args={'charset': 'utf8'})
+# init_db(engine)
