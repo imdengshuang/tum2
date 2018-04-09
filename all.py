@@ -32,15 +32,16 @@ def main():
     db = dbm.DbManager()
     if len(args) == 2:
         blog_name = str(args[1])
-        limit = 10
+        limit = 9
     elif len(args) == 3:
         blog_name = str(args[1])
         limit = int(args[2])
     elif len(args) == 1:
         session = db.get_session()
-        one = session.query(model.Blog).filter(model.Blog.update_time == 0).order_by(model.Blog.id.asc()).first()
+        one = session.query(model.Blog).filter(model.Blog.update_time == 0, model.Blog.status == 1).order_by(
+            model.Blog.id.asc()).first()
         blog_name = one.name
-        limit = 10
+        limit = 9
     else:
         stop_and_log('error', '参数错误 args:%s' % str(args), log)
         return False
@@ -60,7 +61,6 @@ def main():
         return False
     if res_up == 1:
         try:
-            db = dbm.DbManager()
             session = db.get_session()
             exist.update_time = int(time.time())
             session.add(exist)
@@ -87,6 +87,7 @@ def main():
 def update(blog_name, thread_num=10, log=None):
     # 获取博文总数
     total = get_total_post(blog_name, log)
+    print(total)
     if not total:
         return False
     elif total == -1:
@@ -127,6 +128,7 @@ def get_total_post(blog_name, log=None):
     # 组装连接
     url = 'https://%s.tumblr.com/api/read/json?start=%s&num=%s' % (
         blog_name, 0, 10)
+    # print(url)
     # 设置代理
     socket.setdefaulttimeout(20)
     proxy = "https://127.0.0.1:1087"
