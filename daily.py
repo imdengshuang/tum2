@@ -91,6 +91,4 @@ def update_blog(blog_name):
 
 
 if __name__ == '__main__':
-    # main()
-    blog_name = 'mars20160627'
-    catch_data(blog_name, 10, 201, False, 0)
+    main()
