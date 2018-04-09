@@ -11,13 +11,14 @@ Base = declarative_base()
 class Item(Base):
     __tablename__ = 'item'
     id = Column(Integer, primary_key=True, nullable=False)
-    url = Column(String(500), comment='链接地址', nullable=False)
+    url = Column(String(1000), comment='链接地址', nullable=False)
     blog_name = Column(String(100), comment='博客名称')
     type = Column(Integer, comment='类型,0图片,1视频', default=0)
     status = Column(Integer, comment='状态,0待下载,1下载中,2下载失败,3下载成功', default=0)
     create_time = Column(Integer, comment='添加时间', default=0)
     post_time = Column(Integer, comment='发布时间', default=0)
     post_id = Column(String(30), comment='博文唯一码')
+    md5 = Column(String(70),comment='文件md5')
 
     def __repr__(self):
         return "<User(id='%s', name='%s', status='%s',url='%s')>" % (
